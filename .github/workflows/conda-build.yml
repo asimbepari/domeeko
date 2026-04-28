@@ -1,0 +1,28 @@
+name: conda-build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: build-env
+          create-args: >-
+            conda-build
+            conda-verify
+            python=3.10
+            -c conda-forge
+
+      - name: Build conda package
+        shell: bash -l {0}
+        run: |
+          conda build conda-recipe --no-test --quiet
