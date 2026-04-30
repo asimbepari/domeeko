@@ -25,4 +25,5 @@ jobs:
       - name: Build conda package
         shell: bash -l {0}
         run: |
-          conda build conda-recipe --no-test --quiet
+          conda config --set channel_priority strict
+          conda build conda-recipe --no-test --no-anaconda-upload
