@@ -34,9 +34,9 @@ Then run `domeeko full --receptor protein.pdb --lig_dir ligands/` – and you ge
 ## Requirements
 
 - Linux / macOS (bash environment)
-- Conda (recommended for installation)
-- Python ≥3.10
-- The following tools are automatically installed as conda dependencies:
+- Conda (recommended for installation) – [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
+- Python ≥3.10 (handled automatically by conda)
+- The following tools are installed as conda dependencies:
   - [RDKit](https://www.rdkit.org/) ≥2023.09
   - [Open Babel](https://openbabel.org/) ≥3.1.1
   - [AutoDock Vina](https://vina.scripps.edu/) ≥1.2.5
@@ -47,21 +47,15 @@ Then run `domeeko full --receptor protein.pdb --lig_dir ligands/` – and you ge
 
 ## Installation
 
-### From Conda (recommended)
+### From Anaconda (recommended)
 
-domeeko is distributed as a conda package. First, clone the repository (to obtain the conda recipe) and build/install locally:
+domeeko is available as a conda package on the `asimbepari` channel.  
+Install it directly into any conda environment (e.g., `base` or a fresh one):
 
-git clone https://github.com/asimbepari/domeeko.git
-cd domeeko
-conda build .                         # builds the package
-conda install --use-local domeeko     # installs the built package
+create a dedicated environment
 
-After installation, verify it works:
-
-domeeko --help
-domeeko list
-
-If you prefer to install from a remote channel (once published), you would use:
+conda create -n docking -c asimbepari domeeko
+conda activate docking
 
 conda install -c asimbepari domeeko
 
@@ -85,91 +79,77 @@ If installed manually, remove the repository folder and edit your PATH according
 ### General Syntax
  
 domeeko <command> [options]
+
 Available commands:
 
-Command	Description
-lig_prep	Prepare ligands: generate 3D structures and convert to PDBQT.
-rec_prep	Prepare a receptor PDB (clean, add hydrogens, output PDBQT).
-full	Run the complete pipeline (receptor + ligand prep + docking + ranking).
-dock	Perform docking only, using pre‑prepared PDBQT files.
-rank	Parse existing docking logs and generate a ranked CSV.
-get_center	Compute the box center and size from a ligand or a specific residue.
-config	View or modify persistent configuration (e.g., exhaustiveness, CPU count).
-Global Configuration
-domeeko stores settings in ~/.domeekorc. You can edit it manually or use:
-
- 
-domeeko config --save                     # create default config
-domeeko config --set EXHAUSTIVENESS=32    # change exhaustiveness
-domeeko config                            # show current config
-
-### Examples
-1. Prepare only ligands
-Convert all SDF/PDB files in ligands/ to PDBQT (3D + MMFF minimization):
+| Command      | Description                                                         |
+| ------------ | ------------------------------------------------------------------- |
+| `lig_prep`   | Prepare ligands: generate 3D structures and convert to PDBQT        |
+| `rec_prep`   | Prepare receptor PDB: clean structure, add hydrogens, output PDBQT  |
+| `full`       | Run full pipeline (receptor + ligand prep + docking + ranking)      |
+| `dock`       | Perform docking using pre-prepared PDBQT files                      |
+| `rank`       | Parse docking logs and generate ranked CSV                          |
+| `get_center` | Compute docking box center and size from ligand or residue          |
 
 
-domeeko lig_prep --lig_dir ligands/ --steps 5000 --ff MMFF94
-Output is written to pdbqt_out/ by default.
+## Examples
 
-2. Prepare only receptor
- 
-domeeko rec_prep --receptor protein.pdb
-If you prefer the legacy MGLTools pipeline (requires MGLTools installed separately):
+1. **Prepare only ligands**  
+   Convert all SDF/PDB files in `ligands/` to PDBQT (3D + MMFF minimization):  
+   `domeeko lig_prep --lig_dir ligands/ --steps 5000 --ff MMFF94`  
+   Output is written to `pdbqt_out/` by default.
 
- 
-domeeko rec_prep --receptor protein.pdb --use_mgl --mgl_path /opt/mgltools/bin
-3. Full pipeline (receptor + ligands + docking + ranking)
- 
-domeeko full --receptor protein.pdb --lig_dir ligands/ --exhaustiveness 16 --cpu 8
-Output:
+2. **Prepare only receptor**  
+   `domeeko rec_prep --receptor protein.pdb`  
+   If you prefer the legacy MGLTools pipeline (requires MGLTools installed separately):  
+   `domeeko rec_prep --receptor protein.pdb --use_mgl --mgl_path /opt/mgltools/bin`
 
-docking_results/ – PDBQT poses and Vina logs for each ligand.
+3. **Full pipeline (receptor + ligands + docking + ranking)**  
+   `domeeko full --receptor protein.pdb --lig_dir ligands/ --exhaustiveness 16 --cpu 8`  
+   Output:  
+   - `docking_results/` – PDBQT poses and Vina logs for each ligand.  
+   - `logs/` – detailed log files.  
+   - `ranked_results.csv` – summary of all ligands sorted by affinity.
 
-logs/ – detailed log files.
+4. **Manual docking box**  
+   If the automatic box (based on ligand center) is not suitable, specify it explicitly:  
+   `domeeko dock --receptor protein.pdbqt --lig_pdbqt pdbqt_out/ --box 12.3 5.6 9.1 20 20 20`  
+   Here `cx cy cz sx sy sz` = center coordinates (Å) and box size (Å).
 
-ranked_results.csv – summary of all ligands sorted by affinity.
+5. **Rank existing docking logs**  
+   After running many docking jobs, gather and rank all results:  
+   `domeeko rank --logdir logs/ --output best_ligands.csv`
 
-4. Manual docking box
-If the automatic box (based on ligand center) is not suitable, specify it explicitly:
-
- 
-domeeko dock --receptor protein.pdbqt --lig_pdbqt pdbqt_out/ \
-    --box 12.3 5.6 9.1 20 20 20
-Here cx cy cz sx sy sz = center coordinates (Å) and box size (Å).
-
-5. Rank existing docking logs
-After running many docking jobs, gather and rank all results:
-
- 
-domeeko rank --logdir logs/ --output best_ligands.csv
-6. Compute box center from a specific residue
- 
-domeeko get_center --pdb_file protein.pdb --res_num 45 --chain A --padding 8
-This prints the box center and size that encloses residue 45 with 8 Å padding.
+6. **Compute box center from a specific residue**  
+   `domeeko get_center --pdb_file protein.pdb --res_num 45 --chain A --padding 8`  
+   This prints the box center and size that encloses residue 45 with 8Å padding.
+   
 
 ## Command Reference
-Option / Argument	Description
---lig_dir DIR	Directory containing ligand SDF/PDB files (lig_prep, full).
---receptor FILE	Receptor PDB file (rec_prep, full, dock).
---lig_pdbqt DIR	Directory with PDBQT files for docking (dock).
---steps N	MMFF minimization steps (default: 5000).
---ff NAME	Force field: MMFF94 or UFF (default: MMFF94).
---use_mgl	Use MGLTools for receptor prep (legacy).
---mgl_path PATH	Path to MGLTools installation (required with --use_mgl).
---exhaustiveness N	Vina exhaustiveness (default: 8).
---cpu N	Number of CPU cores (default: 4).
---padding N	Padding around ligand/residue (Å, default: 5).
---seed N	Random seed for Vina (default: 42).
---outdir DIR	Directory for docking results (default: docking_results).
---logdir DIR	Directory for logs (default: logs).
---box CX CY CZ SX SY SZ	Manual docking box (center + size in Å).
---no-rank	Skip ranking after docking.
---pdb_file FILE (get_center)	PDB file to analyse.
---ligname NAME / --res_num NUM	Select ligand by name or residue by number.
---chain LETTER	Chain identifier (default: A).
---list-ligands	List all ligands found in PDB.
---write-ligands	Write each ligand to a separate PDB file.
---out FILE	Output file for box coordinates.
+
+| Option / Argument | Description |
+|------------------|-------------|
+| `--lig_dir DIR` | Directory containing ligand SDF/PDB files (`lig_prep`, `full`). |
+| `--receptor FILE` | Receptor PDB file (`rec_prep`, `full`, `dock`). |
+| `--lig_pdbqt DIR` | Directory with PDBQT files for docking (`dock`). |
+| `--steps N` | MMFF minimization steps (default: 5000). |
+| `--ff NAME` | Force field: MMFF94 or UFF (default: MMFF94). |
+| `--use_mgl` | Use MGLTools for receptor prep (legacy). |
+| `--mgl_path PATH` | Path to MGLTools installation (required with `--use_mgl`). |
+| `--exhaustiveness N` | Vina exhaustiveness (default: 8). |
+| `--cpu N` | Number of CPU cores (default: 4). |
+| `--padding N` | Padding around ligand/residue (Å, default: 5). |
+| `--seed N` | Random seed for Vina (default: 42). |
+| `--outdir DIR` | Directory for docking results (default: `docking_results`). |
+| `--logdir DIR` | Directory for logs (default: `logs`). |
+| `--box CX CY CZ SX SY SZ` | Manual docking box (center + size in Å). |
+| `--no-rank` | Skip ranking after docking. |
+| `--pdb_file FILE` (`get_center`) | PDB file to analyse. |
+| `--ligname NAME` / `--res_num NUM` | Select ligand by name or residue by number. |
+| `--chain LETTER` | Chain identifier (default: A). |
+| `--list-ligands` | List all ligands found in PDB. |
+| `--write-ligands` | Write each ligand to a separate PDB file. |
+| `--out FILE` | Output file for box coordinates. |
 
 ## Troubleshooting
 command not found: domeeko – Make sure the conda environment is activated or the bin/ folder is in your PATH.
