@@ -170,19 +170,20 @@ Vina fails with “can’t find receptor” – Ensure the receptor PDBQT file e
 domeeko is released under the MIT License. See the LICENSE file in the repository.
 
 ## Maintainer
-asimbepari – for issues, feature requests, or contributions.
+Bepari, Asim Kumar – for issues, feature requests, or contributions.
+asimbepari@gmail.com, asim.bepari@northsouth.edu
 
 ## Citation information
 
-asimbepari. (2026). domeeko: CLI Toolkit for Molecular Docking Workflows (Version 0.1.0) [Computer software]. GitHub. https://github.com/asimbepari/domeeko
+Bepari, Asim Kumar. (2026). domeeko: CLI Toolkit for Molecular Docking Workflows (Version 0.1.0) [Computer software]. GitHub. https://github.com/asimbepari/domeeko
 
 OR
 
-asimbepari, "domeeko: CLI Toolkit for Molecular Docking Workflows", version 0.1.0, GitHub, 2026. [Online]. Available: https://github.com/asimbepari/domeeko
+Bepari, Asim Kumar, "domeeko: CLI Toolkit for Molecular Docking Workflows", version 0.1.0, GitHub, 2026. [Online]. Available: https://github.com/asimbepari/domeeko
 
 ### 
 @software{domeeko_2026,
-  author       = {asimbepari},
+  author       = {Bepari, Asim Kumar},
   title        = {domeeko: CLI Toolkit for Molecular Docking Workflows},
   year         = {2026},
   version      = {0.1.0},
