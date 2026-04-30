@@ -63,9 +63,11 @@ conda install -c asimbepari domeeko
 ### From GitHub (manual setup)
 If you don’t want to use conda, you can run domeeko directly from the source:
 
+```bash
 git clone https://github.com/asimbepari/domeeko.git
 cd domeeko
 export PATH="$PWD/bin:$PATH"          # add bin/ to your PATH
+
 All dependencies must be installed manually (see Requirements above).
 The script expects the helper scripts in share/domeeko/scripts, which are automatically sourced from the cloned directory.
 
