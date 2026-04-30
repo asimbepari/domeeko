@@ -52,22 +52,23 @@ Then run `domeeko full --receptor protein.pdb --lig_dir ligands/` – and you ge
 `domeeko` is available as a conda package on the `asimbepari` channel.  
 Install it directly into any conda environment (e.g., base or a fresh one).
 
-#### Create a dedicated environment:
+Create a dedicated environment:
 
 ```bash
 conda create -n docking -c asimbepari domeeko
 conda activate docking
 conda install -c asimbepari domeeko
-
+```
 
 ### From GitHub (manual setup)
+
 If you don’t want to use conda, you can run domeeko directly from the source:
 
 ```bash
 git clone https://github.com/asimbepari/domeeko.git
 cd domeeko
 export PATH="$PWD/bin:$PATH"          # add bin/ to your PATH
-
+```
 All dependencies must be installed manually (see Requirements above).
 The script expects the helper scripts in share/domeeko/scripts, which are automatically sourced from the cloned directory.
 
@@ -76,7 +77,7 @@ If installed via conda:
 
 ```bash
 conda remove domeeko
-
+```
 If installed manually, remove the repository folder and edit your PATH accordingly.
 
 ## Usage
