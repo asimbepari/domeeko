@@ -1,0 +1,450 @@
+#!/usr/bin/env bash
+# domeeko - modular CLI for docking preparation and docking
+
+# Exit on error, undefined variable, and pipeline failure
+#set -euo pipefail
+set -uo pipefail
+
+# DEBUG (uncomment if needed)
+# set -x
+# PS4='+ ${BASH_SOURCE}:${LINENO}: '
+
+# =========================================================
+# LOGGING SYSTEM
+# =========================================================
+
+: "${DOMEEKO_LOG_LEVEL:=INFO}"   # DEBUG | INFO | WARN | ERROR | OFF
+
+declare -A _LOG_LEVELS=(
+    [DEBUG]=0
+    [INFO]=1
+    [WARN]=2
+    [ERROR]=3
+    [OFF]=4
+)
+
+_log_level_num() {
+    echo "${_LOG_LEVELS[$DOMEEKO_LOG_LEVEL]:-${_LOG_LEVELS[INFO]}}"
+}
+
+_log_should_print() {
+    local msg_level="$1"
+    local current=$(_log_level_num)
+
+    [[ "${_LOG_LEVELS[$msg_level]}" -ge "$current" ]]
+}
+
+_log() {
+    local level="$1"; shift
+
+    _log_should_print "$level" || return 0
+
+    printf "[%s] %s\n" "$level" "$*" >&2
+}
+
+log_debug() { _log DEBUG "$*"; }
+log_info()  { _log INFO  "$*"; }
+log_warn()  { _log WARN  "$*"; }
+log_error() { _log ERROR "$*"; }
+
+
+# ----------------------------------------------------------------------
+# Determine SCRIPT_DIR reliably
+# ----------------------------------------------------------------------
+SCRIPT_DIR=""
+if [[ -n "${CONDA_PREFIX:-}" && -d "${CONDA_PREFIX}/share/domeeko/scripts" ]]; then
+    SCRIPT_DIR="${CONDA_PREFIX}/share/domeeko/scripts"
+else
+    # Fallback: resolve relative to the location of this script
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../share/domeeko/scripts" && pwd 2>/dev/null)" || {
+        echo "[ERROR] Failed to determine SCRIPT_DIR. Check installation." >&2
+        exit 1
+    }
+fi
+
+# Verify SCRIPT_DIR is a directory
+if [[ ! -d "$SCRIPT_DIR" ]]; then
+    echo "[ERROR] Script directory not found: $SCRIPT_DIR" >&2
+    exit 1
+fi
+
+# ----------------------------------------------------------------------
+# Helper function to source a script with error handling
+# ----------------------------------------------------------------------
+safe_source() {
+    local script="$1"
+    local full_path="${SCRIPT_DIR}/${script}"
+    if [[ ! -f "$full_path" ]]; then
+        echo "[FATAL] Required script not found: $full_path" >&2
+        exit 1
+    fi
+    # shellcheck source=/dev/null
+    source "$full_path" || {
+        echo "[FATAL] Failed to source $full_path" >&2
+        exit 1
+    }
+}
+
+# ----------------------------------------------------------------------
+# Source all required modules
+# ----------------------------------------------------------------------
+safe_source "lig_format.sh"
+declare -F lig_format_main >/dev/null || {
+    echo "[FATAL] lig_format_main not defined after sourcing lig_format.sh" >&2
+    exit 1
+}
+
+safe_source "prep.sh"
+safe_source "center.sh"
+safe_source "receptor_clean.sh"
+safe_source "make_complex.sh"
+safe_source "dock.sh"
+safe_source "menu.sh"
+safe_source "cmd_full_dock.sh"
+safe_source "cmd_prep.sh"
+
+declare -F interactive_menu >/dev/null || {
+    echo "[FATAL] interactive_menu not defined after sourcing menu.sh" >&2
+    exit 1
+}
+
+# =========================================================
+# VERSION SYSTEM (Git-driven)
+# =========================================================
+
+get_domeeko_version() {
+
+    local root version_file ver commit
+    root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+    if [[ -n "${DOMEEKO_VERSION_OVERRIDE:-}" ]]; then
+        echo "$DOMEEKO_VERSION_OVERRIDE"
+        return
+    fi
+
+    version_file="$root/VERSION"
+
+    if [[ -f "$version_file" ]]; then
+        ver="$(< "$version_file")"
+        echo "$ver"
+        return
+    fi
+
+    if [[ -d "$root/.git" ]]; then
+
+        if git -C "$root" describe --tags --exact-match >/dev/null 2>&1; then
+            git -C "$root" describe --tags --exact-match | sed 's/^v//'
+            return
+        fi
+
+        if git -C "$root" describe --tags >/dev/null 2>&1; then
+            git -C "$root" describe --tags | sed 's/^v//'
+            return
+        fi
+
+        commit="$(git -C "$root" rev-parse --short HEAD 2>/dev/null)"
+        [[ -n "$commit" ]] && echo "dev+$commit" && return
+    fi
+
+    echo "0.1.2"
+}
+
+DOMEEKO_VERSION="$(get_domeeko_version)"
+export DOMEEKO_VERSION
+
+
+CONFIG_FILE="$HOME/.domeekorc"
+
+# ----------------------------------------------------------------------
+# (The rest of the script continues here – load_config, save_config, etc.)
+# ----------------------------------------------------------------------
+
+load_config() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        source "$CONFIG_FILE"
+    fi
+}
+
+save_config() {
+    cat > "$CONFIG_FILE" <<EOF
+# Domeeko configuration
+LIG_FORMAT_OUTDIR=${LIG_FORMAT_OUTDIR:-lig_formatted}
+LIG_FORMAT_TYPE=${LIG_FORMAT_TYPE:-sdf}
+LIG_REMOVE_SALT=${LIG_REMOVE_SALT:-true}
+LIG_ADD_H=${LIG_ADD_H:-true}
+USE_MGL=${USE_MGL:-false}
+MGL=${MGL:-}
+RECEPTOR_PDB=${RECEPTOR_PDB:-}
+LIGAND_DIR=${LIGAND_DIR:-}
+MMFF_STEPS=${MMFF_STEPS:-5000}
+FORCE_FIELD=${FORCE_FIELD:-MMFF94}
+EXHAUSTIVENESS=${EXHAUSTIVENESS:-8}
+CPU=${CPU:-4}
+PADDING=${PADDING:-5}
+SEED=${SEED:-42}
+OUTDIR=${OUTDIR:-docking_results}
+LOGDIR=${LOGDIR:-logs}
+RANK_OUTPUT=${RANK_OUTPUT:-ranked_results.csv}
+EOF
+    echo "Configuration saved to $CONFIG_FILE"
+}
+
+HELP_DIR="$(dirname "$0")/../share/domeeko/help"
+
+show_help() {
+    local cmd="${1:-core}"
+    local mode="${2:-short}"
+    local file="${HELP_DIR}/${cmd}.help"
+
+    if [[ ! -f "$file" ]]; then
+        echo "No help available for '$cmd'"
+        return 1
+    fi
+
+    if [[ "$mode" == "full" ]]; then
+        cat "$file"                     # show entire file (detailed)
+    else
+        # Show short help: first 20 lines, then a hint
+        head -20 "$file"
+        echo ""
+        echo "For full documentation: domeeko $cmd --help-full"
+    fi
+}
+
+# Simple usage function (can be expanded)
+usage() {
+    show_help "core"
+}
+
+help_router() {
+    local cmd="$1"
+    local mode="$2"
+
+    case "$mode" in
+        -h|--help|"")
+            show_help "$cmd"
+            ;;
+        --help-full)
+            show_help "${cmd}.full"
+            ;;
+        *)
+            show_help "$cmd"
+            ;;
+    esac
+}
+
+suggest_help() {
+    echo "Try: domeeko <command> -h"
+    echo "Available commands: lig_format lig_prep rec_prep full dock rank make_complex get_center config"
+}
+
+# ----------------------------------------------------------------------
+
+
+
+cmd_config() {
+
+    local key value kv
+
+    case "${1:-}" in
+
+        --save)
+
+            save_config
+            echo "[INFO] Configuration saved to $CONFIG_FILE"
+            ;;
+
+        --reset)
+
+            rm -f "$CONFIG_FILE"
+
+            echo "[INFO] Configuration reset"
+            ;;
+
+        --set)
+
+            shift
+
+            [[ $# -eq 0 ]] && {
+                echo "[ERROR] No KEY=VALUE pairs supplied"
+                return 1
+            }
+
+            for kv in "$@"; do
+
+                kv="${kv%,}"
+
+                [[ "$kv" != *=* ]] && {
+                    echo "[WARNING] Skipping invalid entry: $kv"
+                    continue
+                }
+
+                key="${kv%%=*}"
+                value="${kv#*=}"
+
+                key="$(echo "$key" | xargs)"
+                value="$(echo "$value" | xargs)"
+
+                # -------------------------
+                # Aliases
+                # -------------------------
+
+                case "$key" in
+
+                    EXH)
+                        key="EXHAUSTIVENESS"
+                        ;;
+
+                    FF)
+                        key="FORCE_FIELD"
+                        ;;
+
+                    STEPS)
+                        key="MMFF_STEPS"
+                        ;;
+
+                    PAD)
+                        key="PADDING"
+                        ;;
+
+                    OUT)
+                        key="OUTDIR"
+                        ;;
+
+                    LOG)
+                        key="LOGDIR"
+                        ;;
+
+                    RANK)
+                        key="RANK_OUTPUT"
+                        ;;
+                esac
+
+                # -------------------------
+                # Validation
+                # -------------------------
+
+                case "$key" in
+
+                    CPU|EXHAUSTIVENESS|MMFF_STEPS|PADDING|SEED)
+
+                        [[ "$value" =~ ^[0-9]+$ ]] || {
+                            echo "[ERROR] $key must be integer"
+                            continue
+                        }
+                        ;;
+
+                    FORCE_FIELD)
+
+                        case "$value" in
+                            MMFF94|UFF|GAFF)
+                                ;;
+                            *)
+                                echo "[ERROR] Invalid FORCE_FIELD"
+                                continue
+                                ;;
+                        esac
+                        ;;
+                esac
+
+                export "$key=$value"
+
+                echo "[INFO] Set $key=$value"
+
+            done
+
+            save_config
+
+            echo "[INFO] Configuration saved to $CONFIG_FILE"
+            ;;
+
+        *)
+
+            cat "$CONFIG_FILE" 2>/dev/null || {
+                echo "No configuration found."
+            }
+            ;;
+    esac
+}
+
+
+# =========================================================
+# Command dispatcher
+# =========================================================
+
+COMMAND="${1:-}"
+shift || true
+
+# Intercept help for commands
+if [[ "$COMMAND" == "--help-full" && $# -eq 0 ]]; then
+    show_help "core" "full"
+    exit 0
+elif [[ $# -gt 0 && "$COMMAND" != --help-full && "$1" == "--help-full" ]]; then
+    show_help "$COMMAND" "full"
+    exit 0
+elif [[ "$COMMAND" == "-h" || "$COMMAND" == "--help" ]]; then
+    # No command given, show core short help
+    show_help "core" "short"
+    exit 0
+elif [[ $# -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
+    # Command followed by -h or --help
+    show_help "$COMMAND" "short"
+    exit 0
+fi
+
+case "$COMMAND" in
+    ""|-h|--help)
+        show_help "core"
+        ;;
+
+    menu|--menu|-m)
+        interactive_menu "$@"
+        ;;
+
+    lig_format)
+        cmd_lig_format "$@"
+        ;;
+
+    lig_prep)
+        cmd_lig_prep "$@"
+        ;;
+
+    rec_prep)
+        cmd_rec_prep "$@"
+        ;;
+
+    get_center)
+        cmd_get_center "$@"
+        ;;
+
+    full)
+        cmd_full "$@"
+        ;;
+
+    dock)
+        cmd_dock "$@"
+        ;;
+
+    rank)
+        cmd_rank "$@"
+        ;;
+
+    make_complex)
+        cmd_make_complex "$@"
+        ;;
+
+    config)
+        cmd_config "$@"
+        ;;
+
+    version|--version|-v)
+        echo "domeeko version ${DOMEEKO_VERSION}"
+        ;;
+
+    *)
+        echo "[ERROR] Unknown command: $COMMAND"
+        echo
+        suggest_help
+        exit 1
+        ;;
+esac

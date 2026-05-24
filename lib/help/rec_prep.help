@@ -1,0 +1,23 @@
+domeeko rec_prep — receptor preparation pipeline
+
+USAGE:
+  domeeko rec_prep --receptor FILE [options]
+
+DESCRIPTION:
+  Cleans receptor, detects ligands, generates docking-ready structure.
+
+OPTIONS:
+  --receptor FILE
+  --keep_lig NAME [...]
+  --use_mgl
+  --mgl_path PATH
+
+FEATURES:
+  - receptor QC
+  - ligand retention
+  - center calculation
+  - PDBQT export
+
+EXAMPLES:
+  domeeko rec_prep --receptor protein.pdb
+  domeeko rec_prep --receptor protein.pdb --keep_lig ATP

@@ -1,0 +1,177 @@
+domeeko full — complete docking workflow
+
+USAGE:
+  domeeko full --receptor FILE --lig_dir DIR [options]
+
+DESCRIPTION:
+  End-to-end docking pipeline:
+
+      receptor QC
+          →
+      receptor preparation
+          →
+      ligand formatting
+          →
+      ligand optimization
+          →
+      docking
+          →
+      ranking
+          →
+      complex generation
+
+REQUIRED:
+  --receptor FILE
+        Input receptor PDB
+
+  --lig_dir DIR
+        Ligand directory
+
+============================================================
+RECEPTOR OPTIONS
+============================================================
+
+  --keep_lig NAME [...]
+        Retain selected ligands during receptor cleanup
+
+        Example:
+          --keep_lig ATP MG
+
+  --chain ID [...]
+        Keep only selected receptor chains
+
+        Examples:
+          --chain A
+          --chain A B
+
+  --use_mgl
+        Use legacy MGLTools receptor preparation
+
+  --mgl_path PATH
+        Path to MGLTools installation
+
+============================================================
+LIGAND PREPARATION
+============================================================
+
+  --steps N
+        MMFF optimization steps
+        Default: config value
+
+  --ff NAME
+        Force field
+
+        Supported:
+          MMFF94
+          MMFF94s
+          UFF
+          GAFF
+
+============================================================
+DOCKING OPTIONS
+============================================================
+
+  --exhaustiveness N
+        AutoDock Vina exhaustiveness
+        Default: config value
+
+  --cpu N
+        CPU cores
+        Default: config value
+
+  --padding N
+        Auto-generated docking box padding (Å)
+        Used only in automatic box mode
+
+  --seed N
+        Random seed
+        Default: config value
+
+  --box CX CY CZ SX SY SZ
+        Manual docking box
+
+        Parameters:
+          CX CY CZ = box center
+          SX SY SZ = box size
+
+        Example:
+          --box 10 20 30 25 25 25
+
+        NOTE:
+          When --box is supplied,
+          automatic center detection is bypassed.
+
+============================================================
+OUTPUT OPTIONS
+============================================================
+
+  --outdir DIR
+        Docking output directory
+
+  --logdir DIR
+        Docking log directory
+
+  --no-rank
+        Skip ranking and complex generation
+
+============================================================
+AUTOMATIC PIPELINE OUTPUTS
+============================================================
+
+  Ligand formatting:
+      lig_formatted/
+
+  Docked ligands:
+      docking_results/
+
+  Ranking:
+      ranked_results.csv
+
+  Complexes:
+      complexes/
+
+============================================================
+EXAMPLES
+============================================================
+
+Basic workflow:
+
+  domeeko full \
+      --receptor protein.pdb \
+      --lig_dir ligands/
+
+Keep ATP during receptor cleanup:
+
+  domeeko full \
+      --receptor protein.pdb \
+      --lig_dir ligands/ \
+      --keep_lig ATP
+
+Keep chains A and B only:
+
+  domeeko full \
+      --receptor protein.pdb \
+      --lig_dir ligands/ \
+      --chain A B
+
+Manual docking box:
+
+  domeeko full \
+      --receptor protein.pdb \
+      --lig_dir ligands/ \
+      --box 10 20 30 25 25 25
+
+High-exhaustiveness docking:
+
+  domeeko full \
+      --receptor protein.pdb \
+      --lig_dir ligands/ \
+      --exhaustiveness 32 \
+      --cpu 16
+
+Skip ranking:
+
+  domeeko full \
+      --receptor protein.pdb \
+      --lig_dir ligands/ \
+      --no-rank

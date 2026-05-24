@@ -1,0 +1,30 @@
+domeeko lig_format — ligand preprocessing pipeline
+
+DESCRIPTION:
+  Converts and filters ligand libraries for docking.
+
+USAGE:
+  domeeko lig_format --input FILE_OR_DIR [options]
+
+KEY OPTIONS:
+  --input FILE_OR_DIR     Input ligand file or directory
+  --outdir DIR            Output directory
+  --outtype TYPE          sdf | mol2 | pdb | pdbqt | smiles
+
+PROCESSING OPTIONS:
+  --rdkit                 Force RDKit backend
+  --no-salt               Disable salt removal
+  --no-h                  Disable hydrogen addition
+
+FILTERS:
+  --mw-min N / --mw-max N
+  --atoms-min N / --atoms-max N
+  --N N --O N --S N
+
+QC FILTERS:
+  --lipinski              Apply Lipinski rule-of-five
+  --pains                 PAINS filtering
+
+EXAMPLES:
+  domeeko lig_format --input ligands.sdf
+  domeeko lig_format --input lig.sdf --outtype pdbqt --lipinski

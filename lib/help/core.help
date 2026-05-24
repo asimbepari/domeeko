@@ -1,0 +1,29 @@
+# lib/help/core.help
+domeeko — modular docking preparation toolkit
+
+USAGE:
+  domeeko <command> [options]
+
+CORE COMMANDS:
+
+  menu [--menu]  Launch interactive terminal menu
+  
+  lig_format     Ligand QC, filtering, format conversion
+  lig_prep       Ligand docking preparation (MMFF/UFF/GAFF)
+  rec_prep       Receptor cleaning, QC, PDBQT generation
+
+  full           End-to-end pipeline (prep → dock → rank)
+  dock           Docking only (AutoDock Vina backend)
+  rank           Rank docking results
+
+  make_complex   Build protein–ligand complexes
+  get_center     Binding site center detection
+  config         Global configuration
+
+HELP SYSTEM:
+  domeeko <command> -h         Basic help
+  domeeko <command> --help-full Detailed documentation
+
+EXAMPLES:
+  domeeko lig_prep --lig_dir ligands/
+  domeeko full --receptor prot.pdb --lig_dir ligands/

@@ -1,0 +1,12 @@
+domeeko get_center — binding site detection
+
+USAGE:
+  domeeko get_center --pdb_file FILE [options]
+
+OPTIONS:
+  --ligname NAME
+  --res_num NUM
+  --chain ID
+
+EXAMPLES:
+  domeeko get_center --pdb_file protein.pdb --ligname ATP

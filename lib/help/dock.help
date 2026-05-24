@@ -1,0 +1,14 @@
+domeeko dock — docking engine
+
+USAGE:
+  domeeko dock --receptor FILE --lig_pdbqt DIR
+
+OPTIONS:
+  --exhaustiveness N
+  --cpu N
+  --padding N
+  --seed N
+  --box CX CY CZ SX SY SZ
+
+EXAMPLES:
+  domeeko dock --receptor receptor.pdbqt --lig_pdbqt pdbqt_out

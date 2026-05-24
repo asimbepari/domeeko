@@ -1,0 +1,11 @@
+domeeko rank — docking result ranking
+
+USAGE:
+  domeeko rank --logdir DIR [--output CSV]
+
+OPTIONS:
+  --logdir DIR
+  --output CSV
+
+EXAMPLES:
+  domeeko rank --logdir logs --output ranked.csv

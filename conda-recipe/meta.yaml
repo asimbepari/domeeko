@@ -1,0 +1,64 @@
+package:
+  name: domeeko
+  version: "0.1.2"
+
+source:
+  path: ..
+
+build:
+  number: 2
+  noarch: generic
+
+  script: |
+    mkdir -p "${PREFIX}/bin"
+    mkdir -p "${PREFIX}/share/domeeko/scripts"
+    mkdir -p "${PREFIX}/share/domeeko/help"
+    mkdir -p "${PREFIX}/share/domeeko/examples"
+
+    # =====================================================
+    # Main executable
+    # =====================================================
+    install -m 755 bin/domeeko \
+        "${PREFIX}/bin/domeeko"
+
+    # =====================================================
+    # Shell modules
+    # =====================================================
+    install -m 755 scripts/*.sh \
+        "${PREFIX}/share/domeeko/scripts/"
+
+    # =====================================================
+    # Help system
+    # =====================================================
+    install -m 644 lib/help/*.help \
+        "${PREFIX}/share/domeeko/help/"
+
+    # =====================================================
+    # Examples
+    # =====================================================
+    cp -r Examples/* \
+        "${PREFIX}/share/domeeko/examples/"
+
+requirements:
+  run:
+    - bash
+    - python >=3.10
+    - rdkit >=2023.09
+    - openbabel >=3.1.1
+    - vina >=1.2.5
+    - meeko >=0.7
+
+test:
+  commands:
+    - test -f $PREFIX/bin/domeeko
+    - domeeko --help
+
+about:
+  home: https://github.com/asimbepari/domeeko
+  summary: CLI toolkit for molecular docking workflows
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - asimbepari

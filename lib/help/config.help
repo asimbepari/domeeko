@@ -1,0 +1,8 @@
+domeeko config — global settings
+
+USAGE:
+  domeeko config --set KEY=VALUE
+  domeeko config --save
+
+EXAMPLES:
+  domeeko config --set CPU=8 EXHAUSTIVENESS=16

@@ -1,0 +1,16 @@
+domeeko lig_prep — docking-ready ligand preparation
+
+USAGE:
+  domeeko lig_prep --lig_dir DIR [options]
+
+DESCRIPTION:
+  Performs 3D optimization and PDBQT generation.
+
+OPTIONS:
+  --lig_dir DIR
+  --steps N         MMFF optimization steps (default: 5000)
+  --ff NAME         MMFF94 | MMFF94s | UFF | GAFF
+
+EXAMPLES:
+  domeeko lig_prep --lig_dir ligands
+  domeeko lig_prep --lig_dir ligands --steps 10000 --ff UFF

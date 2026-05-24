@@ -1,0 +1,11 @@
+domeeko make_complex — build protein–ligand complexes
+
+USAGE:
+  domeeko make_complex --receptor FILE --docked_pdbqt DIR --toplist FILE
+
+OPTIONS:
+  --topn N
+  --out_complex DIR
+
+EXAMPLES:
+  domeeko make_complex --receptor r.pdbqt --docked_pdbqt out --toplist ranked.csv
