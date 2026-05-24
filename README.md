@@ -32,7 +32,7 @@ receptor and ligand preparation, AutoDock Vina docking, and result ranking. It i
 
 ```bash
 domeeko full --receptor protein.pdb --lig_dir ligands/
-
+```
 ## Requirements
 
 * Linux / macOS (bash environment)
@@ -45,8 +45,6 @@ domeeko full --receptor protein.pdb --lig_dir ligands/
   * [AutoDock Vina](https://vina.scripps.edu/) ≥1.2.5
   * [Meeko](https://github.com/forlilab/meeko) ≥0.7
   * [pdbfixer](https://github.com/openmm/pdbfixer)
-
-\---
 
 ## Installation
 
